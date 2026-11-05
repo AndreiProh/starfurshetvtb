@@ -5,3 +5,4 @@ __pycache__/
 orders.db
 .env
 products.json
+static/uploads/
