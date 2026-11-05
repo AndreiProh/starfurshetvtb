@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+{% block title %}Каталог продуктов{% endblock %}
+{% block content %}
+
+<section class="hero hero-catering" id="about">
+  <div class="hero-overlay"></div>
+
+  <div class="hero-content">
+    <p class="eyebrow">КЕЙТЕРИНГ В ВИТЕБСКЕ</p>
+
+    <div class="hero-contacts">
+      <a href="tel:+375336202284" class="hero-contact">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M22 16.92v3a2 2 0 0 1-2.18 2
+          19.79 19.79 0 0 1-8.63-3.07
+          19.5 19.5 0 0 1-6-6
+          19.79 19.79 0 0 1-3.07-8.67
+          A2 2 0 0 1 4.11 2h3
+          a2 2 0 0 1 2 1.72
+          c.12.96.36 1.9.7 2.8
+          a2 2 0 0 1-.45 2.11L8.09 9.91
+          a16 16 0 0 0 6 6l1.27-1.27
+          a2 2 0 0 1 2.11-.45
+          c.9.34 1.84.58 2.8.7
+          A2 2 0 0 1 22 16.92z"/>
+        </svg>
+        <span>+375 (33) 620-22-84</span>
+      </a>
+
+      <a href="https://www.instagram.com/star_furshet_vtb/"
+        target="_blank" rel="noopener noreferrer"
+        class="hero-contact">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="1"/>
+        </svg>
+        <span>STAR_FURSHET_VTB</span>
+      </a>
+    </div>
+
+    <h1 class="hero-brand">STAR_FURSHET_VTB</h1>
+
+    <p class="hero-services">
+      СВАДЬБЫ <span>·</span>
+      ФУРШЕТЫ <span>·</span>
+      КЕЙТЕРИНГ <span>·</span>
+      ПОЛУФАБРИКАТЫ
+    </p>
+
+    <div class="hero-divider"></div>
+
+    <div class="hero-order">
+      <a href="#order-form" class="hero-button">
+        Заказать
+      </a>
+    </div>
+
+    <h2 class="hero-heading">
+      Вкус, эстетика и забота о каждом клиенте
+    </h2>
+
+    <p class="hero-description">
+      Превращаем ваши идеи в красивые гастрономические события.
+      Организуем фуршеты и свадебные угощения там, где вы мечтаете
+      отметить важный день: на природе, в загородном доме,
+      в банкетном зале или на любой выбранной вами площадке.
+    </p>
+
+    <p class="hero-description">
+      Свежие блюда, изысканная подача и индивидуальное меню
+      с учётом ваших пожеланий. Мы заботимся о деталях,
+      чтобы вы могли наслаждаться праздником и проводить время
+      с близкими, не отвлекаясь на организационные хлопоты.
+    </p>
+    <p class="hero-description">
+      А для повседневных обедов и ужинов мы предлагаем
+      вкусные полуфабрикаты, которые помогут освободить время
+      для действительно важного. Зачем тратить часы на кухне,
+      если можно наслаждаться домашним уютом, общением с близкими
+      и любимыми делами? Просто приготовьте наши полуфабрикаты
+      и порадуйте себя и семью вкусной едой без лишних хлопот.
+  </p>
+
+    <p class="hero-author">
+      <span>С заботой о вашем празднике</span>
+      <strong>Анастасия Прохоренко</strong>
+    </p>
+
+    <button type="button" class="hero-button" id="open-catering-modal">
+      Обсудить мероприятие
+    </button>
+  </div>
+</section>
+
+<div class="catering-modal" id="catering-modal" hidden>
+  <div class="catering-modal-backdrop" id="catering-modal-backdrop"></div>
+
+  <div class="catering-modal-dialog"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="catering-modal-title">
+
+    <button type="button" class="catering-modal-close"
+            id="close-catering-modal" aria-label="Закрыть">×</button>
+
+    <h2 id="catering-modal-title">Обсудим ваше мероприятие</h2>
+
+    <p>Оставьте номер телефона — мы свяжемся с вами в ближайшее время, чтобы уточнить детали мероприятия.</p>
+
+    <form method="post" action="{{ url_for('create_catering_request') }}">
+      <input type="hidden" name="csrf_token"
+             value="{{ session.get('catering_csrf', '') }}">
+
+      <input class="honeypot" type="text" name="website"
+             tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <label for="catering-phone">Ваш телефон</label>
+      <input id="catering-phone" name="phone" type="tel"
+            required maxlength="20" autocomplete="tel"
+            value="+375 (" placeholder="+375 (29) 123-45-67">
+
+      <button type="submit" class="primary-button">
+        Жду звонка
+      </button>
+    </form>
+  </div>
+</div>
+
+<section class="gallery-section" id="gallery">
+  <div class="gallery-container">
+    <div class="gallery-heading">
+      <p class="eyebrow">STAR_FURSHET_VTB</p>
+      <h2>Наши работы</h2>
+      <p class="gallery-subtitle">
+        Фуршеты, праздничные столы и блюда для ваших особенных событий
+      </p>
+    </div>
+
+
+    <div class="gallery-grid">
+      {% for photo in gallery_photos %}
+      <a class="gallery-item"
+        href="{{ url_for('static', filename='images/gallery/' ~ photo) }}"
+        target="_blank"
+        rel="noopener">
+        <img
+          src="{{ url_for('static', filename='images/gallery/' ~ photo) }}"
+          alt="Работа Star Furshet"
+          loading="lazy">
+      </a>
+      {% endfor %}
+    </div>
+
+    {% if not gallery_photos %}
+    <p class="gallery-empty">Фотографии скоро появятся.</p>
+    {% endif %}
+
+  </div>
+</section>
+
+
+
+<form method="post" action="{{ url_for('create_order') }}" id="order-form">
+  <input type="hidden" name="csrf_token" value="{{ session.get('order_csrf', '') }}">
+  <input class="honeypot" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <div class="catalog-heading"><div><h2>Полуфабрикаты</h2></div><div class="category-filter"><label for="category">Категория</label><select id="category"><option value="">Все товары</option>{% for category in categories %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</select></div></div>
+  <div class="product-grid">
+    {% for product in products %}
+    <article class="product-card" data-category="{{ product.category }}">
+      {% if product.image %}<img class="product-photo" src="{{ url_for('static', filename=product.image) }}" alt="{{ product.name }}" loading="lazy">{% endif %}
+      <div class="product-category">{{ product.category }}</div>
+      <h3>{{ product.name }}</h3>
+      <p class="product-description">{{ product.description }}</p>
+      <div class="product-bottom"><div><strong>{{ "%.2f"|format(product.price) }}</strong><span class="unit"> / {{ product.unit }}</span></div>
+      <div class="quantity"><button type="button" class="qty-btn" data-step="-1" aria-label="Уменьшить количество">−</button><input aria-label="Количество {{ product.name }}" type="number" name="qty_{{ product.id }}" min="0" max="99" value="0" data-price="{{ product.price }}" data-name="{{ product.name }}" data-unit="{{ product.unit }}"><button type="button" class="qty-btn" data-step="1" aria-label="Увеличить количество">+</button></div></div>
+    </article>
+    {% else %}<p>Каталог пока пуст. Добавьте товары в products.json.</p>{% endfor %}
+  </div>
+  <section class="checkout" id="checkout">
+    <div class="checkout-title"><div><p class="eyebrow">ПОСЛЕДНИЙ ШАГ</p><h2>Оформление заказа</h2></div><div class="total-bubble"><span>Итого</span><strong id="total">0.00</strong></div></div>
+    <div class="cart-panel">
+      <div class="cart-summary-heading">
+        <h3>Содержимое корзины</h3>
+        <button class="secondary-button clear-cart-button" type="button" id="clear-cart">Очистить корзину</button>
+      </div>
+      <div id="cart-summary" class="cart-summary" aria-live="polite">Вы пока не добавили товары.</div>
+    </div>
+    
+    <div class="form-grid">
+      <label>Ваше имя
+        <input name="customer_name" maxlength="40" autocomplete="name"
+              placeholder="Как к вам обращаться">
+      </label>
+
+      <label>Телефон *
+        <input
+          name="phone"
+          id="phone-input"
+          type="tel"
+          required
+          value="+375 ("
+          maxlength="20"
+          autocomplete="tel"
+          placeholder="+375..."
+          pattern="\+375 \(\d{2}\) \d{3}-\d{2}-\d{2}"
+          title="Введите номер в формате +375 (29) 123-45-67">
+      </label>
+
+      <label class="wide" id="address-label">Адрес доставки *
+        <input name="address" id="address-input" required maxlength="100"
+              autocomplete="street-address"
+              placeholder="Улица, дом, квартира">
+      </label>
+
+      <label>Получение
+        <select name="delivery_method" id="delivery-method">
+          <option value="delivery">Доставка</option>
+          <option value="pickup">Самовывоз</option>
+        </select>
+      </label>
+
+      <label class="wide">Комментарий к заказу
+        <textarea name="comment" rows="3" maxlength="500"
+                  placeholder="Подъезд, удобное время и другие пожелания"></textarea>
+      </label>
+    </div>
+
+    <!-- <p class="muted small">Отправляя заказ, вы подтверждаете, что указанные контактные данные нужны для его обработки.</p> -->
+    <button class="primary-button" type="submit">Оформить заказ</button>
+  </section>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='shop.js') }}?v=20261019-menu1" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const method = document.getElementById("delivery-method");
+    const address = document.getElementById("address-input");
+    const addressLabel = document.getElementById("address-label");
+
+    if (!method || !address || !addressLabel) return;
+
+    function updateAddressRequirement() {
+        const isDelivery = method.value === "delivery";
+
+        address.required = isDelivery;
+        addressLabel.firstChild.textContent =
+            isDelivery ? "Адрес доставки *" : "Адрес (необязательно)";
+
+        address.autocomplete = isDelivery ? "street-address" : "off";
+    }
+
+    method.addEventListener("change", updateAddressRequirement);
+    updateAddressRequirement();
+});
+</script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const phone = document.getElementById("phone-input");
+    if (!phone) return;
+
+    const prefix = "+375 (";
+
+    function getDigits(value) {
+        let digits = value.replace(/\D/g, "");
+
+        if (digits.startsWith("375")) {
+            digits = digits.slice(3);
+        }
+
+        return digits.slice(0, 9);
+    }
+
+    function formatPhone(digits) {
+        let result = prefix + digits.slice(0, 2);
+
+        if (digits.length >= 2) result += ") ";
+        if (digits.length > 2) result += digits.slice(2, 5);
+        if (digits.length > 5) result += "-" + digits.slice(5, 7);
+        if (digits.length > 7) result += "-" + digits.slice(7, 9);
+
+        return result;
+    }
+
+    phone.addEventListener("focus", function () {
+      if (!phone.value) {
+        phone.value = prefix;
+        phone.setSelectionRange(prefix.length, prefix.length);
+      }
+    });
+
+    phone.addEventListener("keydown", function (event) {
+        if (event.key !== "Backspace" && event.key !== "Delete") return;
+
+        const start = phone.selectionStart;
+        const end = phone.selectionEnd;
+        if (start === null || end === null) return;
+
+        const value = phone.value;
+
+        // Не позволяем удалить фиксированный префикс +375 (
+        if (start === end && start <= prefix.length) {
+            if (event.key === "Backspace") {
+                event.preventDefault();
+                return;
+            }
+        }
+
+        // Если курсор стоит после разделителя, удаляем предыдущую цифру.
+        if (start === end) {
+            let pos = start;
+
+            if (event.key === "Backspace") {
+                while (pos > prefix.length && !/\d/.test(value[pos - 1])) pos--;
+                if (pos > prefix.length) pos--;
+                phone.setRangeText("", pos, start, "start");
+            } else {
+                while (pos < value.length && !/\d/.test(value[pos])) pos++;
+                if (pos < value.length) {
+                    phone.setRangeText("", pos, pos + 1, "start");
+                }
+            }
+
+            event.preventDefault();
+            phone.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+    });
+
+    phone.addEventListener("input", function () {
+        const oldValue = phone.value;
+        const oldPosition = phone.selectionStart ?? oldValue.length;
+        const digitsBeforeCursor = getDigits(oldValue.slice(0, oldPosition)).length;
+        const digits = getDigits(oldValue);
+        const formatted = formatPhone(digits);
+
+        phone.value = formatted;
+
+        let position = prefix.length;
+        let count = 0;
+
+        for (let i = prefix.length; i < formatted.length; i++) {
+            if (/\d/.test(formatted[i])) count++;
+            position = i + 1;
+            if (count >= digitsBeforeCursor) break;
+        }
+
+        if (digitsBeforeCursor === 0) position = prefix.length;
+
+        phone.setSelectionRange(position, position);
+    });
+
+    phone.addEventListener("blur", function () {
+        if (getDigits(phone.value).length === 0) {
+            phone.value = "";
+        }
+    });
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modal = document.getElementById("catering-modal");
+  const openButton = document.getElementById("open-catering-modal");
+  const closeButton = document.getElementById("close-catering-modal");
+  const backdrop = document.getElementById("catering-modal-backdrop");
+  const phone = document.getElementById("catering-phone");
+    // Форматирование белорусского номера телефона
+  phone.addEventListener("focus", function () {
+  if (!phone.value || phone.value === "+375 (") {
+    phone.value = "+375 (";
+    phone.setSelectionRange(phone.value.length, phone.value.length);
+  }
+});
+
+phone.addEventListener("input", function () {
+  let digits = phone.value.replace(/\D/g, "");
+
+  // Удаляем код страны, если он попал в цифры поля
+  if (digits.startsWith("375")) {
+    digits = digits.slice(3);
+  }
+
+  digits = digits.slice(0, 9);
+
+  let formatted = "+375 (";
+
+  if (digits.length > 0) {
+    formatted += digits.slice(0, 2);
+  }
+  if (digits.length > 2) {
+    formatted += ")" + digits.slice(2, 5);
+  }
+  if (digits.length > 5) {
+    formatted += "-" + digits.slice(5, 7);
+  }
+  if (digits.length > 7) {
+    formatted += "-" + digits.slice(7, 9);
+  }
+
+  phone.value = formatted;
+});
+
+  if (!modal || !openButton || !closeButton || !backdrop) return;
+
+  function openModal() {
+    modal.hidden = false;
+    document.body.style.overflow = "hidden";
+    phone.focus();
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    document.body.style.overflow = "";
+    openButton.focus();
+  }
+
+  openButton.addEventListener("click", openModal);
+  closeButton.addEventListener("click", closeModal);
+  backdrop.addEventListener("click", closeModal);
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && !modal.hidden) {
+      closeModal();
+    }
+  });
+});
+</script>
+
+
+{% endblock %}
+

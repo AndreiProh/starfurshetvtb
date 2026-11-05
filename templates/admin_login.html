@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Вход администратора{% endblock %}
+{% block content %}
+<section class="login-card">
+  <p class="eyebrow">ЗАКРЫТЫЙ РАЗДЕЛ</p><h1>Вход администратора</h1><p class="muted">Введите учётные данные, чтобы просмотреть заказы.</p>
+  <form method="post" class="login-form">
+    <label>Логин<input name="username" required autocomplete="username"></label>
+    <label>Пароль<input type="password" name="password" required autocomplete="current-password"></label>
+    <button class="primary-button" type="submit">Войти</button>
+  </form>
+</section>
+{% endblock %}

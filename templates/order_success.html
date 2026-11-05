@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Заказ принят{% endblock %}
+{% block content %}
+<section class="success-card">
+  <div class="success-icon">✓</div><p class="eyebrow">ЗАКАЗ ОТПРАВЛЕН</p><h1>Спасибо за заказ!</h1>
+  <p>Ваш номер заказа: <strong>#{{ order_id }}</strong></p>
+  <p>Предварительная сумма: <strong>{{ "%.2f"|format(total) }}</strong></p>
+  <p class="muted">Администратор свяжется с вами для подтверждения деталей. Оплата — при получении.</p>
+  <a class="primary-button link-button" href="{{ url_for('index') }}">Вернуться в каталог</a>
+</section>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Редактирование меню — администратор{% endblock %}
+{% block content %}
+<section class="admin-heading">
+  <div><p class="eyebrow">ПАНЕЛЬ УПРАВЛЕНИЯ</p><h1>Редактирование меню</h1><p class="muted">Добавляйте товары, изменяйте информацию и управляйте фотографиями каталога.</p></div>
+  <div class="admin-menu-actions"><a class="primary-button" href="{{ url_for('admin_product_add') }}">＋ Добавить товар</a><a class="secondary-button" href="{{ url_for('admin_orders') }}">К заказам</a></div>
+</section>
+{% if not products %}<div class="empty-state"><div>🛍️</div><h2>Каталог пока пуст</h2><p class="muted">Добавьте первую позицию меню.</p><a class="primary-button" href="{{ url_for('admin_product_add') }}">Добавить товар</a></div>{% endif %}
+<div class="admin-menu-list">
+{% for product in products %}
+<article class="admin-product-row">
+  {% if product.get('image') %}<img class="admin-product-thumb" src="{{ url_for('static', filename=product.get('image')) }}" alt="{{ product.get('name', '') }}">{% else %}<div class="admin-product-thumb no-image">Нет фото</div>{% endif %}
+  <div class="admin-product-info"><h2>{{ product.get('name', 'Без названия') }}</h2><p>{{ product.get('description', '') or 'Описание не указано' }}</p><div class="admin-product-meta">{{ product.get('category', 'Другое') }} · {{ "%.2f"|format(product.get('price', 0)|float) }} / {{ product.get('unit', 'шт.') }}</div></div>
+  <div class="admin-product-actions"><a class="secondary-button" href="{{ url_for('admin_product_edit', product_id=product.get('id')) }}">Редактировать</a><form method="post" action="{{ url_for('admin_product_delete', product_id=product.get('id')) }}" onsubmit="return confirm('Удалить этот товар из каталога?');"><input type="hidden" name="csrf_token" value="{{ session.get('admin_csrf', '') }}"><button class="danger-button" type="submit">Удалить</button></form></div>
+</article>
+{% endfor %}
+</div>
+{% endblock %}

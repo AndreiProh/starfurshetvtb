@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Заказы — панель администратора{% endblock %}
+{% block content %}
+<section class="admin-heading">
+  <div>
+    <p class="eyebrow">ПАНЕЛЬ УПРАВЛЕНИЯ</p>
+    <h1>Заказы</h1>
+    <p class="muted">Показаны последние 300 заказов. Новые заказы отслеживаются автоматически, пока страница открыта.
+    </p>
+  </div>
+  <div class="admin-menu-actions"><a class="primary-button" href="{{ url_for('admin_menu') }}">Редактировать меню</a>
+    <form method="post" action="{{ url_for('admin_logout') }}"><input type="hidden" name="csrf_token"
+        value="{{ session.get('admin_csrf', '') }}"><button class="secondary-button">Выйти</button></form>
+  </div>
+</section>
+<div id="new-order-alert" class="new-order-alert" hidden></div>
+<div class="admin-stats">
+  <div><span>Всего в списке</span><strong>{{ orders|length }}</strong></div>
+  <div><span>Новых</span><strong>{{ orders|selectattr('status', 'equalto', 'new')|list|length }}</strong></div>
+  <div><span>На обработке</span><strong>{{ orders|selectattr('status', 'equalto', 'processing')|list|length }}</strong>
+  </div>
+</div>
+{% if not orders %}<div class="empty-state">
+  <div>📦</div>
+  <h2>Заказов пока нет</h2>
+  <p class="muted">Когда покупатель оформит заказ, он появится здесь.</p>
+</div>{% endif %}
+<div class="orders-list" id="orders-list">
+  {% for order in orders %}
+  {% if order.is_catering %}
+  <article class="order-card catering-request-card">
+    <div class="order-top">
+      <div>
+        <h2>Заявка на фуршет/банкет #{{ order.id }}</h2>
+        <span class="muted small">{{ order.created_at_minsk }}</span>
+      </div>
+      <span class="status status-{{ order.status }}">{{ order.status_label }}</span>
+    </div>
+    <div class="order-customer">
+      <div>
+        <span class="field-label">Тип заявки</span>
+        <strong>{{ order.request_type }}</strong>
+      </div>
+      <div>
+        <span class="field-label">Телефон клиента</span>
+        <a href="tel:{{ order.phone }}">{{ order.phone }}</a>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <article class="order-card" id="order-{{ order.id }}" data-order-id="{{ order.id }}">
+    <div class="order-top">
+      <div>
+        <h2>Заказ #{{ order.id }}</h2><span class="muted small">{{ order.created_at_minsk }}</span>
+      </div><span class="status status-{{ order.status }}">{{ order.status_label }}</span>
+    </div>
+    <div class="order-customer">
+      <div><span class="field-label">Покупатель</span><strong>{{ order.customer_name }}</strong></div>
+      <div><span class="field-label">Телефон</span><a href="tel:{{ order.phone }}">{{ order.phone }}</a></div>
+      <div><span class="field-label">Получение</span><strong>{{ "Доставка" if order.delivery_method == "delivery" else
+          "Самовывоз" }}</strong></div>
+    </div>
+    <div class="address-block"><span class="field-label">Адрес</span>{{ order.address }}</div>
+    {% if order.comment %}<div class="comment-block"><span class="field-label">Комментарий</span>{{ order.comment }}
+    </div>{% endif %}
+    <div class="order-items">{% for item in order["items"] %}<div class="order-item"><span>{{ item.product_name }} <span
+            class="muted">× {{ item.quantity }}</span></span><strong>{{ "%.2f"|format(item.price * item.quantity)
+          }}</strong></div>{% endfor %}</div>
+    <div class="order-bottom">
+      <div><span class="field-label">Итого</span><strong class="order-total">{{ "%.2f"|format(order.total) }}</strong>
+      </div>
+      <form method="post" action="{{ url_for('update_status', order_id=order.id) }}" class="status-form"><input
+          type="hidden" name="csrf_token" value="{{ session.get('admin_csrf', '') }}"><label
+          for="status-{{ order.id }}">Статус</label><select id="status-{{ order.id }}" name="status">{% for key, label
+          in statuses.items() %}<option value="{{ key }}" {% if order.status==key %}selected{% endif %}>{{ label }}
+          </option>{% endfor %}</select><button class="secondary-button" type="submit">Сохранить</button></form>
+    </div>
+  </article>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  (() => {
+  let latestId = {{ latest_id| int}};
+  let latestCateringId = {{ latest_catering_id|default (0) | int }};
+  const alertBox = document.getElementById("new-order-alert");
+  let audioContext = null;
+  async function checkUpdates() {
+    try {
+      const response = await fetch(
+        "{{ url_for('admin_updates') }}?after_id=" + latestId +
+        "&after_catering_id=" + latestCateringId,
+        { credentials: "same-origin", cache: "no-store" }
+      );
+      if (response.status === 401 || response.redirected) return;
+      if (!response.ok) return;
+      const data = await response.json();
+
+      const newOrders = data.orders || [];
+      const newCatering = data.catering_requests || [];
+
+      if (newOrders.length || newCatering.length) {
+        if (newOrders.length) {
+          latestId = Math.max(latestId, ...newOrders.map(o => o.id));
+        }
+
+        if (newCatering.length) {
+          latestCateringId = Math.max(
+            latestCateringId,
+            ...newCatering.map(r => r.id)
+          );
+        }
+
+        const messages = [];
+
+        if (newOrders.length) {
+          messages.push(
+            "Новые заказы: " +
+            newOrders.map(o => "#" + o.id + " — " + o.customer_name).join(", ")
+          );
+        }
+
+        if (newCatering.length) {
+          messages.push(
+            "Новые заявки на мероприятие: " +
+            newCatering.map(r => r.phone).join(", ")
+          );
+        }
+
+        alertBox.textContent = messages.join(". ") +
+          ". Обновите страницу, чтобы открыть записи.";
+        alertBox.hidden = false;
+        document.title = "Новая заявка или заказ! — Панель администратора";
+
+        try {
+          if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (audioContext.state === "suspended") await audioContext.resume();
+
+          const oscillator = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          oscillator.connect(gain);
+          gain.connect(audioContext.destination);
+          oscillator.frequency.value = 880;
+          gain.gain.value = 0.08;
+          oscillator.start();
+          oscillator.stop(audioContext.currentTime + 0.18);
+        } catch (_) { }
+      }
+
+    } catch (_) { /* Network may be temporarily unavailable. */ }
+  }
+  setInterval(checkUpdates, 10000);
+})();
+</script>
+{% endblock %}

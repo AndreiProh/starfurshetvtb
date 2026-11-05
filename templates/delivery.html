@@ -1,0 +1,63 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<section class="delivery-page">
+    <div class="delivery-heading">
+        <p class="eyebrow">STAR_FURSHET_VTB</p>
+        <h1>Доставка и оплата</h1>
+        <p>Всё необходимое для оформления и получения вашего заказа.</p>
+    </div>
+
+    <div class="delivery-layout">
+        <div class="delivery-info">
+            <article class="delivery-card">
+                <h2>🚚 Доставка по Витебску</h2>
+                <div class="delivery-price">
+                    <strong>Бесплатно</strong>
+                    <span>при заказе от 250 BYN</span>
+                </div>
+                <p>При заказе на сумму менее 250 BYN стоимость доставки составляет 10 BYN.</p>
+            </article>
+
+            <article class="delivery-card">
+                <h2>📍 Самовывоз</h2>
+                <p><strong>ТЦ «Планета»</strong></p>
+                <p>г. Витебск, пр-т Строителей, 3.</p>
+                <p>Вход с обратной стороны здания.</p>
+            </article>
+        </div>
+
+        <div class="delivery-map">
+            <iframe
+                src="https://yandex.ru/map-widget/v1/?um=constructor%3A92f9a28c96d83430f50d2706ec48c8bc17ca1e60e2e9c48200ae2206980db99f&amp;source=constructor"
+                title="Яндекс Карта — самовывоз Star Furshet"
+                width="100%"
+                height="400"
+                frameborder="0"
+                loading="lazy"
+                allowfullscreen>
+            </iframe>
+        </div>
+    </div>
+
+    <h2 class="payment-heading">Способы оплаты</h2>
+
+    <div class="payment-grid">
+        <article class="payment-card">
+            <h3>💵 Наличными</h3>
+            <p>Оплата при получении заказа.</p>
+        </article>
+
+        <article class="payment-card">
+            <h3>💳 Банковской картой</h3>
+            <p>Оплата через терминал при самовывозе.</p>
+        </article>
+
+        <article class="payment-card">
+            <h3>▦ Через ЕРИП</h3>
+            <p>Предварительная оплата до получения заказа по ссылке или QR-коду.</p>
+        </article>
+    </div>
+</section>
+{% endblock %}
