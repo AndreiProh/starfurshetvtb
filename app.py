@@ -10,6 +10,7 @@ from functools import wraps
 from pathlib import Path
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, abort
+from flask import send_from_directory
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -782,3 +783,33 @@ def upload_too_large(error):
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=int(os.environ.get("PORT", "5000")), debug=False)
 
+
+@app.get("/yandex_c414488b9d92b314.html")
+def yandex_verification():
+    return send_from_directory(
+        app.root_path,
+        "yandex_c414488b9d92b314.html"
+    )
+
+@app.get("/robots.txt")
+def robots_txt():
+    return send_from_directory(
+        app.root_path,
+        "robots.txt",
+        mimetype="text/plain"
+    )
+
+@app.get("/sitemap.xml")
+def sitemap_xml():
+    return send_from_directory(
+        app.root_path,
+        "sitemap.xml",
+        mimetype="application/xml"
+    )
+
+@app.get("/googlea90419548260e95d.html")
+def google_verification():
+    return send_from_directory(
+        app.root_path,
+        "googlea90419548260e95d.html"
+    )

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+
+Sitemap: https://starfurshetvtb.of.by/sitemap.xml

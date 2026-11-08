@@ -4,7 +4,37 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Продукты на заказ{% endblock %}</title>
+  <link rel="icon" type="image/png"
+      href="{{ url_for('static', filename='images/favicon.png') }}">
+  <title>{% block title %}Кейтеринг и фуршеты в Витебске — Star Furshet{% endblock %}</title>
+  <meta name="description" content="{% block description %}Кейтеринг, организация свадеб и фуршетов, праздничные мероприятия, полуфабрикаты и доставка готовых блюд в Витебске от Star Furshet.{% endblock %}">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://starfurshetvtb.of.by/#organization",
+    "name": "Star Furshet",
+    "url": "https://starfurshetvtb.of.by/",
+    "telephone": "+375336202284",
+    "areaServed": [
+      {
+        "@type": "City",
+        "name": "Витебск"
+      },
+      {
+        "@type": "AdministrativeArea",
+        "name": "Витебская область",
+        "containedInPlace": {
+          "@type": "Country",
+          "name": "Беларусь"
+        }
+      }
+    ],
+    "sameAs": [
+      "https://www.instagram.com/star_furshet_vtb/"
+    ]
+  }
+  </script>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=20261020-header2">
 </head>
 
@@ -70,8 +100,9 @@
             <span>STAR_FURSHET_VTB</span>
           </a>
           <p>
-            Организация фуршетов, банкетов и праздничных мероприятий.
-            Вкусная еда и индивидуальный подход к каждому событию.
+            Кейтеринг, фуршеты, доставка готовых блюд и полуфабрикаты.
+            Работаем в Витебске и по всей Витебской области.
+            Создаём вкусные впечатления для праздников и повседневной жизни.
           </p>
         </div>
 
@@ -88,9 +119,10 @@
         <!-- Контакты -->
         <div class="footer-column">
           <h3>КОНТАКТЫ</h3>
-          <a href="tel:+375000000000">+375 (33) 620-22-84</a>
-          <a href="mailto:info@example.by">praharenka90@mail.ru</a>
-          <!-- <p>Витебск, Беларусь</p> -->
+          <a href="tel:+375336202284">+375 (33) 620-22-84</a>
+          <a href="praharenka90@mail.ru">praharenka90@mail.ru</a>
+          <p>Витебск, Беларусь</p>
+          <p>Обслуживание по всей Витебской области</p>
           <a href="https://www.instagram.com/star_furshet_vtb/" target="_blank" rel="noopener noreferrer"
             class="hero-contact">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -108,7 +140,7 @@
           <p class="footer-owner">ИП Прохоренко А.Н. </p>
           <p>УНП 391946451</p>
           <p>Адрес самовывоза:</p>
-          <p>г. Витебск, пр-т Строителей, д. 3 (ТЦ "Планета)</p>
+          <p>г. Витебск, пр-т Строителей, д. 3 (ТЦ "Планета")</p>
 
         </div>
 
