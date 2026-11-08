@@ -13,6 +13,12 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+import smtplib
+import ssl
+import urllib.request
+import urllib.error
+
+from email.message import EmailMessage
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
@@ -30,6 +36,28 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 app.secret_key = os.environ.get("SECRET_KEY", "")
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
+
+# Настройки уведомлений
+# Настройки уведомлений
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+
+TELEGRAM_CHAT_IDS = [
+    chat_id.strip()
+    for chat_id in os.getenv("TELEGRAM_CHAT_IDS", "").replace(";", ",").split(",")
+    if chat_id.strip()
+]
+
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com").strip()
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "").strip()
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
+SMTP_FROM = os.getenv("SMTP_FROM", SMTP_USER).strip()
+
+NOTIFY_EMAILS = [
+    address.strip()
+    for address in os.getenv("NOTIFY_EMAILS", "").replace(";", ",").split(",")
+    if address.strip()
+]
 
 if not app.secret_key:
     # Development convenience only. Set SECRET_KEY in production.
@@ -60,6 +88,110 @@ def format_minsk_time(value):
         return dt.astimezone(ZoneInfo("Europe/Minsk")).strftime("%d.%m.%Y %H:%M")
     except (ValueError, TypeError):
         return value
+
+def send_telegram_notification(message):
+    """Отправляет уведомление всем получателям из TELEGRAM_CHAT_IDS."""
+
+    if not TELEGRAM_BOT_TOKEN:
+        app.logger.warning("Не задан токен Telegram-бота.")
+        return False
+
+    if not TELEGRAM_CHAT_IDS:
+        app.logger.warning("Список получателей Telegram пуст.")
+        return False
+
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
+    sent_count = 0
+
+    for chat_id in TELEGRAM_CHAT_IDS:
+        payload = json.dumps({
+            "chat_id": chat_id,
+            "text": message
+        }).encode("utf-8")
+
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        try:
+            with urllib.request.urlopen(req, timeout=10) as response:
+                result = json.loads(response.read().decode("utf-8"))
+
+            if result.get("ok"):
+                sent_count += 1
+            else:
+                app.logger.error(
+                    "Telegram не подтвердил отправку получателю %s.",
+                    chat_id
+                )
+
+        except Exception:
+            app.logger.exception(
+                "Ошибка отправки Telegram-уведомления получателю %s.",
+                chat_id
+            )
+
+    app.logger.info(
+        "Telegram: уведомление отправлено %s из %s получателей.",
+        sent_count,
+        len(TELEGRAM_CHAT_IDS)
+    )
+
+    return sent_count > 0
+
+
+def send_email_notification(subject, message):
+    """Отправляет письмо всем активным адресатам из NOTIFY_EMAILS."""
+    if not SMTP_USER or not SMTP_PASSWORD or not NOTIFY_EMAILS:
+        app.logger.warning("Почта не настроена. Уведомление не отправлено.")
+        return False
+
+    context = ssl.create_default_context()
+    sent_count = 0
+
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+
+            for recipient in NOTIFY_EMAILS:
+                try:
+                    email = EmailMessage()
+                    email["Subject"] = subject
+                    email["From"] = SMTP_FROM
+                    email["To"] = recipient
+                    email.set_content(message)
+
+                    refused = server.send_message(email)
+
+                    if not refused:
+                        sent_count += 1
+                    else:
+                        app.logger.warning(
+                            "Почтовый сервер отклонил одного из получателей."
+                        )
+
+                except Exception:
+                    app.logger.exception(
+                        "Не удалось отправить письмо одному из получателей."
+                    )
+
+        return sent_count > 0
+
+    except Exception:
+        app.logger.exception("Ошибка подключения к SMTP-серверу Gmail.")
+        return False
+
+def notify_admins(subject, message):
+    """Отправляет уведомления по всем настроенным каналам."""
+    send_telegram_notification(message)
+    send_email_notification(subject, message)
 
 def connect_db():
     conn = sqlite3.connect(DB_PATH, timeout=10)
@@ -317,6 +449,45 @@ def create_order():
         )
         db.commit()
 
+    # Формируем уведомление о новом заказе
+    delivery_text = (
+        "Доставка" if delivery_method == "delivery" else "Самовывоз"
+    )
+
+    message_lines = [
+        f"НОВЫЙ ЗАКАЗ №{order_id}",
+        "",
+        f"Покупатель: {name or 'Не указано'}",
+        f"Телефон: {phone}",
+        f"Получение: {delivery_text}",
+    ]
+
+    if address:
+        message_lines.append(f"Адрес: {address}")
+
+    message_lines.extend(["", "Состав заказа:"])
+
+    for product_id, product_name, price, quantity in items:
+        line_total = price * quantity
+        message_lines.append(
+            f"{product_name} — {quantity} × {price:.2f} = {line_total:.2f}"
+        )
+
+    message_lines.extend([
+        "",
+        f"ИТОГО: {total:.2f}",
+    ])
+
+    if comment:
+        message_lines.extend(["", f"Комментарий: {comment}"])
+
+    message = "\n".join(message_lines)
+
+    notify_admins(
+        f"Новый заказ №{order_id} — StarFurshet",
+        message
+    )
+
     session.pop("order_csrf", None)
     return render_template("order_success.html", order_id=order_id, total=round(total, 2))
 
@@ -348,18 +519,28 @@ def create_catering_request():
 
     try:
         with connect_db() as db:
-            db.execute(
+            cursor = db.execute(
                 """INSERT INTO catering_requests
                 (phone, request_type, status, created_at)
                 VALUES (?, ?, 'new', ?)""",
                 (phone, "Фуршет/банкет", now)
             )
+            catering_id = cursor.lastrowid
             db.commit()
     except Exception:
         app.logger.exception("Не удалось сохранить заявку на мероприятие")
         flash("Не удалось отправить заявку. Попробуйте ещё раз.", "error")
         return redirect(url_for("index") + "#about")
+    message = (
+        f"НОВАЯ ЗАЯВКА НА МЕРОПРИЯТИЕ №{catering_id}\n\n"
+        f"Тип: Фуршет/банкет\n"
+        f"Телефон: {phone}"
+    )
 
+    notify_admins(
+        f"Новая заявка на мероприятие №{catering_id} — StarFurshet",
+        message
+    )
     session.pop("catering_csrf", None)
     flash(
         "Заявка отправлена. Мы свяжемся с вами в ближайшее время, "
