@@ -823,7 +823,14 @@ textarea {
     padding: 13px 16px;
     margin: 0 0 15px;
     font-weight: 800;
-    font-size: 13px
+    font-size: 13px;
+    text-decoration: none;
+    cursor: pointer;
+    display: block;
+}
+
+.new-order-alert[hidden] {
+    display: none;
 }
 
 .honeypot {

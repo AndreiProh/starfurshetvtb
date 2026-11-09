@@ -4,6 +4,7 @@ import sqlite3
 import hmac
 import secrets
 import uuid
+import time
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from functools import wraps
@@ -230,6 +231,12 @@ def init_db():
             product_name TEXT NOT NULL,
             price REAL NOT NULL,
             quantity INTEGER NOT NULL CHECK(quantity > 0)
+        );
+        CREATE TABLE IF NOT EXISTS admin_login_attempts (
+            ip_address TEXT PRIMARY KEY,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            window_started REAL NOT NULL,
+            locked_until REAL NOT NULL DEFAULT 0
         );
         """)
         db.commit()
@@ -559,20 +566,115 @@ def prepare_order_csrf():
         if "catering_csrf" not in session:
             session["catering_csrf"] = secrets.token_urlsafe(24)
 
+def get_admin_client_ip():
+    return (
+        request.headers.get("X-Real-IP", "").strip()
+        or request.remote_addr
+        or "unknown"
+    )
+
+
+def is_admin_login_locked(ip_address):
+    now = time.time()
+
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT locked_until FROM admin_login_attempts WHERE ip_address = ?",
+            (ip_address,)
+        ).fetchone()
+
+        if row and row["locked_until"] > now:
+            return True
+
+        if row and row["locked_until"] > 0:
+            db.execute(
+                "DELETE FROM admin_login_attempts WHERE ip_address = ?",
+                (ip_address,)
+            )
+            db.commit()
+
+    return False
+
+
+def record_failed_admin_login(ip_address):
+    now = time.time()
+
+    with connect_db() as db:
+        row = db.execute(
+            """
+            SELECT attempts, window_started
+            FROM admin_login_attempts
+            WHERE ip_address = ?
+            """,
+            (ip_address,)
+        ).fetchone()
+
+        if not row or now - row["window_started"] > 900:
+            attempts = 1
+            window_started = now
+        else:
+            attempts = row["attempts"] + 1
+            window_started = row["window_started"]
+
+        locked_until = now + 900 if attempts >= 5 else 0
+
+        db.execute(
+            """
+            INSERT OR REPLACE INTO admin_login_attempts
+            (ip_address, attempts, window_started, locked_until)
+            VALUES (?, ?, ?, ?)
+            """,
+            (ip_address, attempts, window_started, locked_until)
+        )
+        db.commit()
+
+
+def clear_admin_login_attempts(ip_address):
+    with connect_db() as db:
+        db.execute(
+            "DELETE FROM admin_login_attempts WHERE ip_address = ?",
+            (ip_address,)
+        )
+        db.commit()
+
 @app.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     if session.get("admin_authenticated"):
         return redirect(url_for("admin_orders"))
+
     if request.method == "POST":
+        ip_address = get_admin_client_ip()
+
+        if is_admin_login_locked(ip_address):
+            flash(
+                "Слишком много неудачных попыток. "
+                "Попробуйте войти через 15 минут.",
+                "error"
+            )
+            return render_template("admin_login.html"), 429
+
         username = request.form.get("username", "")
         password = request.form.get("password", "")
-        if (ADMIN_PASSWORD_HASH and hmac.compare_digest(username.encode("utf-8"),
-                    ADMIN_USERNAME.encode("utf-8")) and check_password_hash(ADMIN_PASSWORD_HASH, password)):
+
+        if (
+            ADMIN_PASSWORD_HASH
+            and hmac.compare_digest(
+                username.encode("utf-8"),
+                ADMIN_USERNAME.encode("utf-8")
+            )
+            and check_password_hash(ADMIN_PASSWORD_HASH, password)
+        ):
+            clear_admin_login_attempts(ip_address)
+
             session.clear()
             session["admin_authenticated"] = True
             session["admin_csrf"] = secrets.token_urlsafe(24)
+
             return redirect(url_for("admin_orders"))
+
+        record_failed_admin_login(ip_address)
         flash("Неверный логин или пароль.", "error")
+
     return render_template("admin_login.html")
 
 @app.route("/admin/menu")

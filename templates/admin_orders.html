@@ -13,7 +13,14 @@
         value="{{ session.get('admin_csrf', '') }}"><button class="secondary-button">Выйти</button></form>
   </div>
 </section>
-<div id="new-order-alert" class="new-order-alert" hidden></div>
+<a
+  id="new-order-alert"
+  class="new-order-alert"
+  href="{{ url_for('admin_orders') }}"
+  hidden
+>
+  У вас новые заказы — нажмите, чтобы посмотреть
+</a>
 <div class="admin-stats">
   <div><span>Всего в списке</span><strong>{{ orders|length }}</strong></div>
   <div><span>Новых</span><strong>{{ orders|selectattr('status', 'equalto', 'new')|list|length }}</strong></div>
@@ -113,24 +120,8 @@
           );
         }
 
-        const messages = [];
-
-        if (newOrders.length) {
-          messages.push(
-            "Новые заказы: " +
-            newOrders.map(o => "#" + o.id + " — " + o.customer_name).join(", ")
-          );
-        }
-
-        if (newCatering.length) {
-          messages.push(
-            "Новые заявки на мероприятие: " +
-            newCatering.map(r => r.phone).join(", ")
-          );
-        }
-
-        alertBox.textContent = messages.join(". ") +
-          ". Обновите страницу, чтобы открыть записи.";
+        alertBox.textContent =
+          "У вас новые заказы или заявки — нажмите, чтобы посмотреть";
         alertBox.hidden = false;
         document.title = "Новая заявка или заказ! — Панель администратора";
 
