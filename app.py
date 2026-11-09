@@ -19,7 +19,7 @@ import smtplib
 import ssl
 import urllib.request
 import urllib.error
-
+import threading
 from email.message import EmailMessage
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -36,6 +36,11 @@ def allowed_file(filename):
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 app.secret_key = os.environ.get("SECRET_KEY", "")
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
 
@@ -189,6 +194,15 @@ def send_email_notification(subject, message):
     except Exception:
         app.logger.exception("Ошибка подключения к SMTP-серверу Gmail.")
         return False
+
+def notify_admins_background(subject, message):
+    """Отправляет уведомления в фоновом потоке."""
+    try:
+        notify_admins(subject, message)
+    except Exception:
+        app.logger.exception(
+            "Ошибка фоновой отправки уведомлений администраторам."
+        )
 
 def notify_admins(subject, message):
     """Отправляет уведомления по всем настроенным каналам."""
@@ -394,6 +408,7 @@ def index():
 
 @app.post("/order")
 def create_order():
+    order_started = time.perf_counter()
     # Basic anti-CSRF token and honeypot. For a larger deployment use Flask-WTF/CSRF.
     token = session.get("order_csrf")
     submitted_token = request.form.get("csrf_token", "")
@@ -443,6 +458,7 @@ def create_order():
         return redirect(url_for("index"))
 
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    db_started = time.perf_counter()
     with connect_db() as db:
         cursor = db.execute(
             """INSERT INTO orders
@@ -456,6 +472,7 @@ def create_order():
             [(order_id, *item) for item in items]
         )
         db.commit()
+    db_seconds = time.perf_counter() - db_started
 
     # Формируем уведомление о новом заказе
     delivery_text = (
@@ -491,13 +508,26 @@ def create_order():
 
     message = "\n".join(message_lines)
 
-    notify_admins(
-        f"Новый заказ №{order_id} — StarFurshet",
-        message
+    notification_thread = threading.Thread(
+        target=notify_admins_background,
+        args=(
+            f"Новый заказ №{order_id} — StarFurshet",
+            message
+        ),
+        daemon=True
     )
+    notification_thread.start()
 
     session.pop("order_csrf", None)
-    return render_template("order_success.html", order_id=order_id, total=round(total, 2))
+
+    return render_template(
+        "order_success.html",
+        order_id=order_id,
+        total=round(total, 2)
+    )
+
+    
+         
 
 @app.post("/catering-request")
 def create_catering_request():
@@ -545,10 +575,15 @@ def create_catering_request():
         f"Телефон: {phone}"
     )
 
-    notify_admins(
-        f"Новая заявка на мероприятие №{catering_id} — StarFurshet",
-        message
+    notification_thread = threading.Thread(
+        target=notify_admins_background,
+        args=(
+            f"Новая заявка на мероприятие №{catering_id} — StarFurshet",
+            message
+        ),
+        daemon=True
     )
+    notification_thread.start()
     session.pop("catering_csrf", None)
     flash(
         "Заявка отправлена. Мы свяжемся с вами в ближайшее время, "
